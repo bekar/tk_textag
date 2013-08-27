@@ -1,0 +1,3 @@
+[submodule "vtk100_colors"]
+	path = vtk100_colors
+	url = git@github.com:bekar/vtk100-colors.git

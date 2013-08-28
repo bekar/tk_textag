@@ -16,7 +16,6 @@ font_face = [
 class textag(vt100tk):
     def __init__(self, txt_wig, string=None):
         vt100tk.__init__(self, txt_wig)
-        self.tag_found=0
         if string: self.parser(string)
 
     def tag_sgr(self, code, pre, cur):
@@ -34,7 +33,7 @@ class textag(vt100tk):
         if   self.extend: self.label.append(tag); self.extend=0;
         elif 39 < tag < 48: self.label.append("bg:"+pallet8[tag-40])
         elif 29 < tag < 38: self.label.append("fg:"+pallet8[tag-30])
-        elif 0 < tag < 9: self.label.append(font_face[tag])
+        elif 0 < tag < 10: self.label.append(font_face[tag])
         elif self.extend==53: self.label.append("bg")
         elif self.extend==43: self.label.append("fg")
         else: self.label.append("unknown:"+str(tag))
@@ -44,20 +43,26 @@ class textag(vt100tk):
         vt100tk.de_code(self, fp, pre, cur)
         if self.label:
             global cl
-            id="cl"+str(self.tag_found)
-            cl.hlist.add(id, text=str(self.label))
-            cl.setstatus(id, "on")
-            self.tag_found+=1
+            #id="cl"+str(self.tag_found)
+            id = str(self.label)
+            try:
+                cl.hlist.add(id, text=id)
+                cl.setstatus(id, "on")
+            except Exception as e:
+                cl.hlist.item_configure(id, col=0, text=id+"+")
+
             self.txtwig.tag_add(id, pre, cur)
 
-def selectItem(item, *event):
-    #print(event)
-    #print(tix.Event)
+def selectItem(item):
+    e=root.event_info()#.Event()
+    print(e)
+    print(dir(e))
+    #print(e[0].type)
     #print(tix.Event)
     #print(tix.Event.__doc__)
     #if tix.Event == "<ButtonRelease>":
     #    print("hello")
-    #print(dir(cl.event_info))
+    #print(cl.event_info())
     #root.idea
     status=cl.getstatus(item)
     print(item, status)
@@ -73,6 +78,11 @@ def selectItem(item, *event):
     else:
         text.tag_lower(item)
 
+    cl.hlist.selection_clear()
+
+def test_me(*event):
+    print(event[0].type)
+
 if __name__ == "__main__" :
     if len(sys.argv)<2:
          print("Argument(s) Missing", file=sys.stderr); exit(1);
@@ -84,6 +94,8 @@ if __name__ == "__main__" :
 
     frame=Frame(root)
     cl=tix.CheckList(frame, browsecmd=selectItem)#, exportselection=1)
+    cl.hlist.config(background="#e2e2e2")
+    #cl.hlist['background'] = "#e2e2e2"
     #pan.add(frame)
 
     from subprocess import check_output
@@ -97,4 +109,5 @@ if __name__ == "__main__" :
     #pan.pack(fill=BOTH, expand=YES)
 
     root.bind('<Key-Escape>', quit)
+    #root.bind('<ButtonRelease>', test_me)
     root.mainloop()

@@ -4,7 +4,14 @@ import os, sys
 from tkinter import *
 from tkinter import tix
 
-from vtk100_colors.main import *
+filepath=os.path.abspath(__file__)
+fullpath=os.path.dirname(filepath)
+sys.path.append(fullpath+"/..")
+
+if __name__ == '__main__':
+    from vtk100_colors import *
+else:
+    from lib.vtk100_colors import *
 
 def_color = [ "black", "white" ]
 
@@ -13,8 +20,14 @@ font_face = [
     "negative", "hide", "strike-out"
 ]
 
-class textag(vt100tk):
-    def __init__(self, txt_wig, string=None):
+class textag(Frame, vt100tk):
+    def __init__(self, parent=None, txt_wig=None, string=None):
+        Frame.__init__(self, parent)
+        self.cl=tix.CheckList(self, browsecmd=self.selectItem)
+        self.cl.hlist.config(background="#e5e5e5")
+        self.cl.pack(expand=YES, fill=BOTH)
+        self.cl.autosetmode()
+        self.pack(side=RIGHT, expand=YES, fill=BOTH)
         vt100tk.__init__(self, txt_wig)
         if string: self.parser(string)
 
@@ -42,72 +55,51 @@ class textag(vt100tk):
         self.label = []
         vt100tk.de_code(self, fp, pre, cur)
         if self.label:
-            global cl
             #id="cl"+str(self.tag_found)
             id = str(self.label)
             try:
-                cl.hlist.add(id, text=id)
-                cl.setstatus(id, "on")
+                self.cl.hlist.add(id, text=id)
+                self.cl.setstatus(id, "on")
             except Exception as e:
-                cl.hlist.item_configure(id, col=0, text=id+"+")
+                self.cl.hlist.item_configure(id, col=0, text=id+"+")
 
             self.txtwig.tag_add(id, pre, cur)
 
-def selectItem(item):
-    e=root.event_info()#.Event()
-    print(e)
-    print(dir(e))
-    #print(e[0].type)
-    #print(tix.Event)
-    #print(tix.Event.__doc__)
-    #if tix.Event == "<ButtonRelease>":
-    #    print("hello")
-    #print(cl.event_info())
-    #root.idea
-    status=cl.getstatus(item)
-    print(item, status)
-    if status == "off":
-        text.tag_config(item,
-                        foreground = "black",
-                        background = "white",
-                        font = def_font,
-                        underline = FALSE,
-                        overstrike = FALSE,
-        )
-        text.tag_raise(item)
-    else:
-        text.tag_lower(item)
+    def selectItem(self, item):
+        # e=root.event_info()#.Event()
+        # print(e)
+        # print(dir(e))
+        # print(e[0].type)
+        # print(tix.Event)
+        # print(tix.Event.__doc__)
+        # print(cl.event_info())
+        status=self.cl.getstatus(item)
+        print(item, status)
+        if status == "off":
+            text.tag_config(item,
+                    foreground = "black",
+                    background = "white",
+                    font = def_font,
+                    underline = FALSE,
+                    overstrike = FALSE,
+                )
+            text.tag_raise(item)
+        else:
+            text.tag_lower(item)
 
-    cl.hlist.selection_clear()
-
-def test_me(*event):
-    print(event[0].type)
+        self.cl.hlist.selection_clear()
 
 if __name__ == "__main__" :
     if len(sys.argv)<2:
          print("Argument(s) Missing", file=sys.stderr); exit(1);
     root=tix.Tk()
 
-    #pan=PanedWindow(root)
     text=Text(root, font=def_font)
-    #pan.add(text)
-
-    frame=Frame(root)
-    cl=tix.CheckList(frame, browsecmd=selectItem)#, exportselection=1)
-    cl.hlist.config(background="#e2e2e2")
-    #cl.hlist['background'] = "#e2e2e2"
-    #pan.add(frame)
 
     from subprocess import check_output
-    vtk=textag(text, check_output(sys.argv[1:], universal_newlines=True))
-    #vtk=vt100tk(text, test_string)
-
+    string=check_output(sys.argv[1:], universal_newlines=True)
+    vtk=textag(root, text, string)
     text.pack(side=LEFT, expand=YES, fill=BOTH)
-    cl.pack(expand=YES, fill=BOTH)
-    cl.autosetmode()
-    frame.pack(side=RIGHT, expand=YES, fill=BOTH)
-    #pan.pack(fill=BOTH, expand=YES)
 
     root.bind('<Key-Escape>', quit)
-    #root.bind('<ButtonRelease>', test_me)
     root.mainloop()

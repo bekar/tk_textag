@@ -22,7 +22,7 @@ font_face = [
 
 tag_list = dict()
 
-def load_tags():
+def load_tags(tagl=tag_list):
     title = [
        { "fg": "red", "bold": True, "underline": True }
     ]
@@ -36,11 +36,10 @@ def load_tags():
         { "fg": "blue", "bold": True }
     ]
 
-    global tag_list
-    tag_list[" Title "] =  [ 0, title ]
-    tag_list[" code "] =  [ 0, code ]
-    tag_list[" executable "] =  [ 0, exe ]
-    tag_list[" folder "] =  [ 0, folder ]
+    tagl["title"] =  [ "title", 0, title ]
+    tagl["code"] =  [ "rode", 0, code ]
+    tagl["exe"] =  [ "executable", 0, exe ]
+    tagl["folder"] =  [ "folder", 0, folder ]
 
 
 class textag(vt100tk):
@@ -75,9 +74,9 @@ class textag(vt100tk):
 
     def makelabel(self, label):
         for key in tag_list:
-            for tag in tag_list[key][1]:
+            for tag in tag_list[key][2]:
                 if tag == label:
-                   return (tag_list[key][0], key)
+                   return (tag_list[key][1], " %s "%tag_list[key][0])
 
         id = " "
         for key in self.label:

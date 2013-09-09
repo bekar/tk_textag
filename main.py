@@ -8,10 +8,7 @@ filepath=os.path.abspath(__file__)
 fullpath=os.path.dirname(filepath)
 sys.path.append(fullpath+"/..")
 
-if __name__ == '__main__':
-    from vtk100_colors import *
-else:
-    from lib.vtk100_colors import *
+from vtk100_colors.main import *
 
 def_color = [ "black", "white" ]
 
@@ -37,7 +34,7 @@ def load_tags(tagl=tag_list):
     ]
 
     tagl["title"] =  [ "title", 0, title ]
-    tagl["code"] =  [ "rode", 0, code ]
+    tagl["code"] =  [ "code", 0, code ]
     tagl["exe"] =  [ "executable", 0, exe ]
     tagl["folder"] =  [ "folder", 0, folder ]
 

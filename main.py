@@ -101,10 +101,7 @@ class textag(vt100tk):
 
             self.txtwig.tag_add(id, pre, cur)
             if wflag > 0:
-                self.printag(id, self.txtwig.get(pre,cur))
-
-    def printag(self, id, text):
-        print(id, text)
+                printag(id, self.txtwig.get(pre,cur))
 
     def selectItem(self, item):
         # e=root.event_info()#.Event()
@@ -129,6 +126,9 @@ class textag(vt100tk):
             self.txtwig.tag_lower(item)
 
         self.cl.hlist.selection_clear()
+
+def printag(id, text):
+    print(id, text)
 
 if __name__ == "__main__" :
     if len(sys.argv)<2:

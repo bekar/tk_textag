@@ -1,4 +1,5 @@
 *in
 *pyc
-test
+_*
 __init__.py
+test

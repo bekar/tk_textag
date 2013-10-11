@@ -3,6 +3,7 @@
 import os, sys
 from tkinter import *
 from tkinter import tix
+import checklist as clist
 
 filepath=os.path.abspath(__file__)
 fullpath=os.path.dirname(filepath)
@@ -37,7 +38,6 @@ def load_tags(tagl=tag_list):
     tagl["code"] =  [ "code", 0, code ]
     tagl["exe"] =  [ "executable", 0, exe ]
     tagl["folder"] =  [ "folder", 0, folder ]
-
 
 class textag(vt100tk):
     def __init__(self, parent=None, txt_wig=None, cl_wig=None, string=None):
@@ -90,11 +90,26 @@ class textag(vt100tk):
             wflag, id = self.makelabel(self.label)
             try:
                 self.cl.hlist.add(id, text="[%s] 1"%id)
+                cl2.add("[%s] 1"%id)
                 self.cl.setstatus(id, "on")
                 self.stats[id]=1
             except Exception as e:
                 self.stats[id]+=1
                 self.cl.hlist.item_configure(id, col=0, text="[%s] %s"%(id,str(self.stats[id])))
+
+            self.txtwig.tag_add(id, pre, cur)
+            if wflag > 0:
+                printag(id, self.txtwig.get(pre,cur))
+
+    def makelist(self, fp, pre, cur):
+        self.label = dict()
+        vt100tk.de_code(self, fp, pre, cur)
+        if self.label:
+            wflag, id = self.makelabel(self.label)
+            try:
+                cl2.add("[%s] 1"%id)
+            except Exception as e:
+                pass
 
             self.txtwig.tag_add(id, pre, cur)
             if wflag > 0:
@@ -141,10 +156,17 @@ if __name__ == "__main__" :
     cl.hlist.config(background="#e5e5e5")
     cl.autosetmode()
 
+    clist.root=root
+    cl2=clist.checklist()
+
     from subprocess import check_output
     string=check_output(sys.argv[1:], universal_newlines=True)
     vtk=textag(root, text, cl, string)
+
     text.pack(side=LEFT, expand=YES, fill=BOTH)
+    cl2.pack(side=RIGHT, expand=YES, fill=BOTH)
     cl.pack(side=RIGHT, expand=YES, fill=BOTH)
+
+
     root.bind('<Key-Escape>', lambda event: quit())
     root.mainloop()

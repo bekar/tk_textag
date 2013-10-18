@@ -1,9 +1,8 @@
 #!/usr/bin/python3
 
-import os, sys
 from tkinter import *
 
-class checklist(Frame):
+class CheckList(Frame):
     def __init__(self, parent=None):
         Frame.__init__(self, parent)
         self.makeWidgets()
@@ -58,16 +57,25 @@ class checklist(Frame):
         for obj in self.cstack:
             obj.toggle()
 
-    # def countplus(self, id):
-    #     self.cstack[self.top.get()].config(text=
+    def loadTags(self, tlist):
+        for tag in tlist:
+            self.add("%-18s%d"%(tag[-2], tag[-1]))
+
+    def packing(self):
+        for item in stats:
+            if item[1]==1 and item[2]!=0:
+                add(self, "[ %s ] %d"%(item[0], item[0]))
 
     def add(self, label):
         t=self.top.get()
-        obj=Checkbutton(self.frame_check, text=label, anchor=NW)
-        self.cstack.append(obj)
+        self.insert(label, t)
         self.top.set(t+1)
-        obj.pack(fill=BOTH)
         return t
+
+    def insert(self, label, pos):
+        obj=Checkbutton(self.frame_check, text=label, anchor=NW, font="DejaVuSansMono 10")
+        self.cstack.insert(pos, obj)
+        obj.pack(fill=BOTH)
         # obj.bind("<Button-1>", lambda e: obj.config(bg="blue"))
         # obj.bind("<Enter>", None)
         # obj.bind("<Leave>", None)
@@ -91,7 +99,7 @@ class checklist(Frame):
 
 if __name__ == "__main__" :
     root=Tk()
-    cl=checklist()
+    cl=CheckList()
     cl.pack()
     root.bind('<Key-Escape>', lambda e: quit())
     root.mainloop()

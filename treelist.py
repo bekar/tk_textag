@@ -7,7 +7,7 @@ from tkinter.ttk import *
 #CURRENT_ITEM=None
 list_col = [
     ["", "Tag", "#"],
-    [10, 150, 30]
+    [20, 150, 50]
 ]
 
 class TreeList(Frame):
@@ -24,11 +24,11 @@ class TreeList(Frame):
         bar=Frame(self)
 
         # toolbar
-        self.button_pus=Button(bar, text="+", command=lambda: self.push())
-        self.button_pop=Button(bar, text="-")#, command=self.pop)
-        self.button_selAll=Button(bar, text="☑")#, command=self.selAll)
-        self.button_selInv=Button(bar, text="ɐ")#, command=self.selInv)
-        self.button_reset=Button(bar, text="♻")#, command=self.selInv)
+        self.button_pus=Button(bar, width=2, text="+", command=lambda: self.push())
+        self.button_pop=Button(bar, width=2, text="-")#, command=self.pop)
+        self.button_selAll=Button(bar, width=2, text="☑")#, command=self.selAll)
+        self.button_selInv=Button(bar, width=2, text="ɐ")#, command=self.selInv)
+        self.button_reset=Button(bar, width=2, text="♻")#, command=self.selInv)
 
         # packing
         self.button_pus.pack(side=LEFT, anchor=NW)
@@ -38,14 +38,15 @@ class TreeList(Frame):
         self.button_reset.pack(side=LEFT, anchor=NW)
 
         # treeview
-        self.tree = ttk.Treeview(self, show="headings", columns=list_col[0])
+        self.tree = ttk.Treeview(self, columns=list_col[0])
         self.tree.config(selectmode='extended')
         #self.tree.config(height=8)
 
         # header
         for c, w in zip(list_col[0], list_col[1]):
+            #print(c, w)
             self.tree.heading(c, text=c, command=lambda col=c: self.sortby(col, 0))
-            self.tree.column(c, width=w, minwidth=w)
+            self.tree.column(c, width=w, minwidth=w, stretch=0)
 
         # scrollbar
         # vsb = Scrollbar(orient="vertical", command=self.tree.yview, takefocus=0)
@@ -71,35 +72,28 @@ class TreeList(Frame):
         #self.tree.bind('<Button-1>', self.select)
 
     def call_popup(self, event):
-        global POP_SELECT
         ex=event.x_root
         ey=event.y_root
         offset=19*1
         #print(ex, ey, offset)
-        self.popup.tk_popup(ex,ey)
-        POP_SELECT=ttk.Treeview.identify(self.tree, component='item', x=ex, y=ey-offset)
-        self.tree.selection_set(POP_SELECT)
-        self.tree.focus(POP_SELECT)
+        focus=ttk.Treeview.identify(self.tree, component='item', x=ex, y=ey-offset)
+        if not focus: return
+        self.tree.selection_set(focus)
+        self.tree.focus(focus)
         self.tree.focus_set()
+        self.popup.tk_popup(ex,ey)
 
     def makePopUp(self):
         popup = Menu(tearoff=0)
-        popup.add_command(label="Rescan", command=lambda: rescan())
-        popup.add_command(label="Built Report")
+        popup.add_command(label="menu 1", command=lambda: rescan())
 
-        popup.add_command(label="Copy Path", command=None)
-        popup.add_checkbutton(label="Bad Marker")
-
-        subm_export = Menu(popup, tearoff=False)
-        subm_export.add_command(label="color to pdf", command=None)
-        subm_export.add_command(label="xml to pdf")
-
-        subm_export.add_separator()
-        subm_export.add_command(label="More")
-        popup.add_cascade(label="Export", menu=subm_export, underline=0)
+        subm = Menu(popup, tearoff=False)
+        subm.add_command(label="submenu 1")
+        subm.add_command(label="submenu 2")
+        popup.add_cascade(label="menu 2", menu=subm, underline=0)
 
         popup.add_separator()
-        popup.add_command(label="Properties", command=self.article_properties)
+        popup.add_command(label="menu 3", command=self.article_properties)
 
         self.popup=popup
 
@@ -114,21 +108,17 @@ class TreeList(Frame):
         self.tree.heading(col,
             command=lambda col=col: self.sortby(col, int(not descending)))
 
-    def insert(self, data, pos='end'):
-        if data[0]: state='☑'
+    def insert(self, data, pos=END, parent=''):
+        if data[2]: state='☑'
         else: state='☐'
-        row = [ state , data[1], data[2] ]
-        select=self.tree.insert('', pos, value=row)
+        row = [ state , data[0], data[1] ]
+        id=self.tree.insert(parent, pos, value=row)
         self.top+=1
+        return id
 
     def push(self):
-        row = [ '☑', str(self.top), 0 ]
+        row = [  str(self.top), 0, '☑' ]
         self.insert(row)
-
-    def loadTags(self, tlist):
-        for i, tag in enumerate(tlist):
-            if tag[0]:
-                self.insert(tag[-3:])
 
     def article_properties(self):
         win=Toplevel()#padx=7, pady=7)
@@ -145,18 +135,9 @@ class TreeList(Frame):
         if not focus: return
         sel=self.tree.item(focus)
         val=sel['values']
-        if val[0] == '☑':
-            state = '☐'
-            tree_active(focus)
-        else:
-            state = '☑'
-            tree_inactive(focus)
-
+        if val[0] == '☑': state = '☐'
+        else: state = '☑'
         self.tree.set(focus, 0, state)
-
-def tree_active(focus): print(focus, "active")
-def tree_inactive(focus): print(focus, "inactive")
-
 
 if __name__ == '__main__':
     root = Tk()

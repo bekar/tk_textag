@@ -6,7 +6,6 @@ class CheckList(Frame):
     def __init__(self, parent=None):
         Frame.__init__(self, parent)
         self.makeWidgets()
-        self.bindings()
 
     def makeWidgets(self):
         self.cstack = []
@@ -43,12 +42,6 @@ class CheckList(Frame):
     def status(self, *events):
         self.label_stack.config(text=str(self.top.get()))
 
-    def bindings(self):
-        root.bind('<Key-a>', lambda e: self.push())
-        root.bind('<Key-d>', lambda e: self.pop())
-        root.bind('<Control-a>', lambda e: self.selAll())
-        root.bind('<Control-i>', lambda e: self.selInv())
-
     def selAll(self):
         for obj in self.cstack:
             obj.select()
@@ -56,10 +49,6 @@ class CheckList(Frame):
     def selInv(self):
         for obj in self.cstack:
             obj.toggle()
-
-    def loadTags(self, tlist):
-        for tag in tlist:
-            self.add("%-18s%d"%(tag[-2], tag[-1]))
 
     def packing(self):
         for item in stats:
@@ -76,11 +65,6 @@ class CheckList(Frame):
         obj=Checkbutton(self.frame_check, text=label, anchor=NW, font="DejaVuSansMono 10")
         self.cstack.insert(pos, obj)
         obj.pack(fill=BOTH)
-        # obj.bind("<Button-1>", lambda e: obj.config(bg="blue"))
-        # obj.bind("<Enter>", None)
-        # obj.bind("<Leave>", None)
-        # obj.bind("<FocusIn>", None)
-        # obj.bind("<FocusOut>", None)
 
     def push(self):
         t=self.top.get()

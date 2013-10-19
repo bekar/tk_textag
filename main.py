@@ -23,7 +23,7 @@ tag_list = []
 
 def load_tags(tl=tag_list):
     title = [
-       { "fg": "red", "bold": True, "underline": True }
+        { "fg": "red", "bold": True, "underline": True }
     ]
     code = [
         { "fg": "blue", "italic": True }
@@ -35,22 +35,20 @@ def load_tags(tl=tag_list):
         { "fg": "blue", "bold": True }
     ]
 
-    tl.append([ True, title, True, "title", 0 ])
-    tl.append([ True, code, True, "code", 0 ])
-    tl.append([ True, exe, True, "executable", 0 ])
-    tl.append([ True, folder, True, "folder", 0 ])
+    #tl.append([ "label", count, state, parent, object, show ])
+    tl.append([ "filesys", 0, True, None, None, True ])
+    tl.append([ "executable", 0, True, "filesys", exe, True ])
+    tl.append([ "folder", 0, True, "filesys", folder, True ])
+    tl.append([ "title", 0, True, None, title, True ])
+    tl.append([ "code", 0, True, None, code, True ])
 
 class textag(vt100tk):
-    def __init__(self, parent=None, txt_wig=None, cl_wig=None, string=None):
+    def __init__(self, parent, txt_wig, string=None):
         vt100tk.__init__(self, txt_wig)
-        self.cl=cl_wig
+        self.isapp=True
         self.ex_tmp=None
-        self.cl.config(browsecmd=self.selectItem)
         self.stats = dict()
         if string: self.parser(string)
-        cl2.loadTags(tag_list)
-        cl3.loadTags(tag_list)
-        self.loadTags(tag_list)
 
     def tag_sgr(self, code, pre, cur):
         if not code: return
@@ -73,26 +71,41 @@ class textag(vt100tk):
         else: self.attrib["unknown"]=tag
         if self.ex_tmp: self.attrib[self.ex_tmp]=int(tag[2:]); self.ex_tmp=None
 
-    def makelabel(self, found):
-        for i, tag in enumerate(tag_list):
-            for attrib in tag[1]:
+    def counter(self, found):
+        for tag in tag_list:
+            if tag[-2] == None: continue
+            for attrib in tag[-2]:
                 if attrib == found:
-                    tag_list[i][-1]+=1
-                    return tag[-2];
+                    tag[1]+=1
+                    return tag[0]
 
         label=""
         for key in found:
             label += str(key)+":"
             label += str(self.attrib[key])
 
-        tag_list.append([ True, [ found ], True, label, 1 ])
+        tag_list.append([ label, 1, True, None, [ found ], True])
         return label;
+
+
+    def _enter(self, event):
+        self.txtwig.config(cursor="hand2")
+
+    def _leave(self, event):
+        self.txtwig.config(cursor="")
+
+    def _click(self, event, text):
+        ex=event.x_root
+        ey=event.y_root
+        tooltip = Menu(tearoff=0)
+        tooltip.add_command(label=text)
+        tooltip.tk_popup(ex,ey)
 
     def de_code(self, fp, pre, cur):
         self.attrib = dict()
         label=vt100tk.de_code(self, fp, pre, cur)
         if self.attrib:
-            label=self.makelabel(self.attrib)
+            label=self.counter(self.attrib)
             self.txtwig.tag_add(label, pre, cur)
             self.txtwig.tag_lower(label)
             self.txtwig.tag_config(label,
@@ -102,44 +115,52 @@ class textag(vt100tk):
                     underline = FALSE,
                     overstrike = FALSE
                 )
+            self.txtwig.tag_bind(label, "<Enter>", self._enter)
+            self.txtwig.tag_bind(label, "<Leave>", self._leave)
+            self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label))
 
-    def loadTags(self, tlist):
-        for tag in tlist:
-            if tag[0]:
-                self.cl.hlist.add(tag[-2], text="[ %s ] %d"%(tag[-2], tag[-1]))
-                self.cl.setstatus(tag[-2], "on")
+def loadTags(tlist):
+    for tag in tlist:
+        if tag[2]:
+            if tag[-3]:
+                c1label="   %-15s%d"%(tag[0], tag[1])
+                print(tag[0], tag[-3])
+                cl2.insert(tag[:3], parent=obj)
+            else:
+                c1label="%-18s%d"%(tag[0], tag[1])
+                obj=cl2.insert(tag[:3])
 
-    def state_active(self, tag):
-        self.txtwig.tag_raise(tag)
-
-    def state_inactive(self, tag):
-        self.txtwig.tag_lower(tag)
-
-    def selectItem(self, item):
-        status=self.cl.getstatus(item)
-        print(item, status)
-        if status == "off":
-            self.txtwig.tag_raise(tag)
-        else:
-            self.txtwig.tag_lower(item)
-
-        self.cl.hlist.selection_clear()
+            cl1.add(c1label)
+            cl3.hlist.add(tag[0], text="[ %s ] %d"%(tag[0], tag[1]))
+            cl3.setstatus(tag[0], "on")
 
 def tree_select(*events):
-    sel=cl3.tree.selection()
+    cl2.tree.update_idletasks()
+    sel=cl2.tree.selection()
+    # foc=cl2.tree.focus()
+    # print(sel, foc)
     if not sel: return
     for item in sel:
-        obj=cl3.tree.item(item)
+        obj=cl2.tree.item(item)
         val=obj['values']
         if val[0] == '☑':
             state = '☐'
-            ttag.state_active(val[1])
+            ttag.txtwig.tag_raise(val[1])
         else:
             state = '☑'
-            ttag.state_inactive(val[1])
+            ttag.txtwig.tag_lower(val[1])
+        print(val[1], state)
+        cl2.tree.set(item, 0, state)
 
-        cl3.tree.set(item, 0, state)
+def selectItem(item):
+    status=cl3.getstatus(item)
+    print(item, status)
+    if status == "off":
+        ttag.txtwig.tag_raise(item)
+    else:
+        ttag.txtwig.tag_lower(item)
 
+    cl3.hlist.selection_clear()
 
 if __name__ == "__main__" :
     if len(sys.argv)<2:
@@ -151,29 +172,24 @@ if __name__ == "__main__" :
 
     text=Text(root, font=def_font)
 
-    cl=tix.CheckList()
-    cl.hlist.config(background="#e5e5e5")
-    cl.autosetmode()
-
-    clist.root=root
-    cl2=clist.CheckList()
-
-    clist.root=root
-    cl3=tlist.TreeList()
-    cl3.tree.bind('<Button-1>', tree_select)
-
     from subprocess import check_output
     string=check_output(sys.argv[1:], universal_newlines=True)
-    ttag=textag(root, text, cl, string)
+    ttag=textag(root, text, string)
 
+    cl1=clist.CheckList()
+    cl2=tlist.TreeList()
+    #cl2.tree.bind('<Button-1>', lambda e: tree_select(e))
+    cl2.tree.bind('<space>', tree_select)
+    cl3=tix.CheckList(browsecmd=selectItem)
+    cl3.autosetmode()
+
+    loadTags(tag_list)
     text.config(width=50)
-    cl3.config(width=25)
 
     text.pack(side=LEFT, expand=YES, fill=BOTH)
     cl3.pack(side=RIGHT, expand=YES, fill=BOTH)
     cl2.pack(side=RIGHT, expand=YES, fill=BOTH)
-    cl.pack(side=RIGHT, expand=YES, fill=BOTH)
+    cl1.pack(side=RIGHT, expand=YES, fill=BOTH)
 
-    #root.maxsize(root.winfo_screenwidth()-200, 200)
     root.bind('<Key-Escape>', lambda event: quit())
     root.mainloop()

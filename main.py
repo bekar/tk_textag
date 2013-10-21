@@ -2,8 +2,6 @@
 
 import os, sys
 from tkinter import *
-from tkinter import tix
-import checklist as clist
 import treelist as tlist
 
 filepath=os.path.abspath(__file__)
@@ -34,10 +32,14 @@ def load_tags(tl=tag_list):
     folder = [
         { "fg": "blue", "bold": True }
     ]
+    infile = [
+        { "fg": "green" }
+    ]
 
-    #tl.append([ "label", count, state, parent, object, show ])
+    #[ label, count, state, parent, object, show ]
     tl.append([ "filesys", 0, True, None, None, True ])
     tl.append([ "executable", 0, True, "filesys", exe, True ])
+    tl.append([ "infile", 0, True, "filesys", infile, True ])
     tl.append([ "folder", 0, True, "filesys", folder, True ])
     tl.append([ "title", 0, True, None, title, True ])
     tl.append([ "code", 0, True, None, code, True ])
@@ -122,17 +124,8 @@ class textag(vt100tk):
 def loadTags(tlist):
     for tag in tlist:
         if tag[2]:
-            if tag[-3]:
-                c1label="   %-15s%d"%(tag[0], tag[1])
-                print(tag[0], tag[-3])
-                cl2.insert(tag[:3], parent=obj)
-            else:
-                c1label="%-18s%d"%(tag[0], tag[1])
-                obj=cl2.insert(tag[:3])
-
-            cl1.add(c1label)
-            cl3.hlist.add(tag[0], text="[ %s ] %d"%(tag[0], tag[1]))
-            cl3.setstatus(tag[0], "on")
+            if tag[-3]: cl2.insert(tag[:3], parent=obj)
+            else: obj=cl2.insert(tag[:3])
 
 def tree_select(*events):
     cl2.tree.update_idletasks()
@@ -141,15 +134,19 @@ def tree_select(*events):
     # print(sel, foc)
     if not sel: return
     for item in sel:
+        i=int(item[1:], base=16)-1
         obj=cl2.tree.item(item)
         val=obj['values']
-        if val[0] == '☑':
-            state = '☐'
-            ttag.txtwig.tag_raise(val[1])
+        if tag_list[i][2]:
+            state=val[0].replace('☑', '☐')
+            ttag.txtwig.tag_raise(tag_list[i][0])
+            tag_list[i][2]=False
         else:
-            state = '☑'
-            ttag.txtwig.tag_lower(val[1])
-        print(val[1], state)
+            state=val[0].replace('☐', '☑')
+            ttag.txtwig.tag_lower(tag_list[i][0])
+            tag_list[i][2]=True
+
+        print(state)
         cl2.tree.set(item, 0, state)
 
 def selectItem(item):
@@ -166,7 +163,7 @@ if __name__ == "__main__" :
     if len(sys.argv)<2:
          print("Argument(s) Missing", file=sys.stderr); exit(1);
 
-    root=tix.Tk()
+    root=Tk()
     root.title("textag")
     load_tags()
 
@@ -176,20 +173,14 @@ if __name__ == "__main__" :
     string=check_output(sys.argv[1:], universal_newlines=True)
     ttag=textag(root, text, string)
 
-    cl1=clist.CheckList()
     cl2=tlist.TreeList()
-    #cl2.tree.bind('<Button-1>', lambda e: tree_select(e))
+    cl2.tree.bind('<Button-1>', lambda e: tree_select(e))
     cl2.tree.bind('<space>', tree_select)
-    cl3=tix.CheckList(browsecmd=selectItem)
-    cl3.autosetmode()
 
     loadTags(tag_list)
-    text.config(width=50)
 
     text.pack(side=LEFT, expand=YES, fill=BOTH)
-    cl3.pack(side=RIGHT, expand=YES, fill=BOTH)
     cl2.pack(side=RIGHT, expand=YES, fill=BOTH)
-    cl1.pack(side=RIGHT, expand=YES, fill=BOTH)
 
     root.bind('<Key-Escape>', lambda event: quit())
     root.mainloop()

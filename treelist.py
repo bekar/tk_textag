@@ -5,9 +5,11 @@ from tkinter import ttk
 from tkinter.ttk import *
 
 #CURRENT_ITEM=None
+
+cols = [ "#0", "count" ]
 list_col = [
-    ["", "Tag", "#"],
-    [20, 150, 50]
+    [ "#0", "tag", 100, 150 ],
+    [ "count", "#", 25, 50  ]
 ]
 
 class TreeList(Frame):
@@ -38,15 +40,14 @@ class TreeList(Frame):
         self.button_reset.pack(side=LEFT, anchor=NW)
 
         # treeview
-        self.tree = ttk.Treeview(self, columns=list_col[0])
+        self.tree = ttk.Treeview(self, columns=cols)
         self.tree.config(selectmode='extended')
         #self.tree.config(height=8)
 
         # header
-        for c, w in zip(list_col[0], list_col[1]):
-            #print(c, w)
-            self.tree.heading(c, text=c, command=lambda col=c: self.sortby(col, 0))
-            self.tree.column(c, width=w, minwidth=w, stretch=0)
+        for c in list_col:
+           self.tree.heading(c[0], text=c[1])
+           self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=0)
 
         # scrollbar
         # vsb = Scrollbar(orient="vertical", command=self.tree.yview, takefocus=0)
@@ -109,10 +110,20 @@ class TreeList(Frame):
             command=lambda col=col: self.sortby(col, int(not descending)))
 
     def insert(self, data, pos=END, parent=''):
-        if data[2]: state='☑'
-        else: state='☐'
-        row = [ state , data[0], data[1] ]
-        id=self.tree.insert(parent, pos, value=row)
+        state=""
+        if parent:
+            print(self.tree.get_children(parent))
+
+            state=" ├─"
+            count=data[1]
+            obj=self.tree.item(parent)
+            val=obj['values']
+            count+=val[-1]
+            self.tree.set(parent, 1, count)
+        if data[2]: state+='☑ '
+        else: state+='☐ '
+        row = [ state+data[0], data[1] ]
+        id=self.tree.insert(parent, pos, value=row, open=True)
         self.top+=1
         return id
 
@@ -129,15 +140,6 @@ class TreeList(Frame):
     def clear_tree(self):
         x = self.tree.get_children()
         for item in x: self.tree.delete(item)
-
-    def select(self, *events):
-        focus=self.tree.focus()
-        if not focus: return
-        sel=self.tree.item(focus)
-        val=sel['values']
-        if val[0] == '☑': state = '☐'
-        else: state = '☑'
-        self.tree.set(focus, 0, state)
 
 if __name__ == '__main__':
     root = Tk()

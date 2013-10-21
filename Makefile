@@ -1,4 +1,10 @@
-current: default
+current: file
+
+check:
+	./checklist.py
+
+tree:
+	./treelist.py
 
 default:
 	@echo "make [hello|ls]"
@@ -10,7 +16,8 @@ run:
 	./main.py ${COMMAND}
 
 file:
-	./main.py cat ${FILE}
+	#./main.py cat ${FILE}
+	./main.py cat file.in
 
 ls:
 	./main.py ls --color=always

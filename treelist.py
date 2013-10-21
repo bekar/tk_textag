@@ -112,8 +112,6 @@ class TreeList(Frame):
     def insert(self, data, pos=END, parent=''):
         state=""
         if parent:
-            print(self.tree.get_children(parent))
-
             state=" ├─"
             count=data[1]
             obj=self.tree.item(parent)

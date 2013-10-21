@@ -122,10 +122,24 @@ class textag(vt100tk):
             self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label))
 
 def loadTags(tlist):
+    root_id=leaf_id=None
     for tag in tlist:
-        if tag[2]:
-            if tag[-3]: cl2.insert(tag[:3], parent=obj)
-            else: obj=cl2.insert(tag[:3])
+        if tag[-1]: # show bit
+            if tag[-3]:
+                if tag[1]==0: continue
+                leaf_id=cl2.insert(tag[:3], parent=root_id)
+            else:
+                if leaf_id:
+                    obj=cl2.tree.item(leaf_id)
+                    val=obj['values']
+                    change=val[0].replace("├", "└")
+                    cl2.tree.set(leaf_id, 0, change)
+                if root_id:
+                    obj=cl2.tree.item(root_id)
+                    val=obj['values']
+                    if val[-1]==0:
+                        cl2.tree.delete(root_id)
+                root_id=cl2.insert(tag[:3])
 
 def tree_select(*events):
     cl2.tree.update_idletasks()

@@ -19,7 +19,7 @@ font_face = [
 
 tag_list = []
 
-def load_tags(tl=tag_list):
+def buildTagsList(tl=tag_list):
     title = [
         { "fg": "red", "bold": True, "underline": True }
     ]
@@ -35,6 +35,14 @@ def load_tags(tl=tag_list):
     infile = [
         { "fg": "green" }
     ]
+
+    #[ label, show, parent, object ]
+    # tl.append([ "filesys", True, "", None ])
+    # tl.append([ "executable", True, "filesys", exe ])
+    # tl.append([ "infile", True, "filesys", infile ])
+    # tl.append([ "folder", True, "filesys", folder ])
+    # tl.append([ "title", True, "", title ])
+    # tl.append([ "code", True, "", code ])
 
     #[ label, count, state, parent, object, show ]
     tl.append([ "filesys", 0, True, None, None, True ])
@@ -73,6 +81,19 @@ class textag(vt100tk):
         else: self.attrib["unknown"]=tag
         if self.ex_tmp: self.attrib[self.ex_tmp]=int(tag[2:]); self.ex_tmp=None
 
+    def _enter(self, event):
+        self.txtwig.config(cursor="hand2")
+
+    def _leave(self, event):
+        self.txtwig.config(cursor="")
+
+    def _click(self, event, text):
+        ex=event.x_root
+        ey=event.y_root
+        tooltip = Menu(tearoff=0)
+        tooltip.add_command(label=text)
+        tooltip.tk_popup(ex,ey)
+
     def counter(self, found):
         for tag in tag_list:
             if tag[-2] == None: continue
@@ -89,19 +110,6 @@ class textag(vt100tk):
         tag_list.append([ label, 1, True, None, [ found ], True])
         return label;
 
-
-    def _enter(self, event):
-        self.txtwig.config(cursor="hand2")
-
-    def _leave(self, event):
-        self.txtwig.config(cursor="")
-
-    def _click(self, event, text):
-        ex=event.x_root
-        ey=event.y_root
-        tooltip = Menu(tearoff=0)
-        tooltip.add_command(label=text)
-        tooltip.tk_popup(ex,ey)
 
     def de_code(self, fp, pre, cur):
         self.attrib = dict()
@@ -124,54 +132,56 @@ class textag(vt100tk):
 def loadTags(tlist):
     root_id=leaf_id=None
     for tag in tlist:
-        if tag[-1]: # show bit
-            if tag[-3]:
-                if tag[1]==0: continue
-                leaf_id=cl2.insert(tag[:3], parent=root_id)
-            else:
-                if leaf_id:
-                    obj=cl2.tree.item(leaf_id)
-                    val=obj['values']
-                    change=val[0].replace("├", "└")
-                    cl2.tree.set(leaf_id, 0, change)
-                if root_id:
-                    obj=cl2.tree.item(root_id)
-                    val=obj['values']
-                    if val[-1]==0:
-                        cl2.tree.delete(root_id)
-                root_id=cl2.insert(tag[:3])
+        if not tag[-1]: continue # show bit
+        if tag[-3]:
+            if tag[1]==0: continue
+            leaf_id=cl2.insert(tag[:3], parent=root_id)
+        else:
+            if leaf_id:
+                obj=cl2.tree.item(leaf_id)
+                val=obj['values']
+                change=val[0].replace("├", "└")
+                cl2.tree.set(leaf_id, 0, change)
+                leaf_id=None
+            if root_id:
+                obj=cl2.tree.item(root_id)
+                val=obj['values']
+                if val[-1]==0:
+                    cl2.tree.delete(root_id)
+            root_id=cl2.insert(tag[:3])
 
 def tree_select(*events):
-    cl2.tree.update_idletasks()
+    #cl2.tree.update_idletasks()
     sel=cl2.tree.selection()
     # foc=cl2.tree.focus()
     # print(sel, foc)
     if not sel: return
     for item in sel:
-        i=int(item[1:], base=16)-1
-        obj=cl2.tree.item(item)
-        val=obj['values']
-        if tag_list[i][2]:
-            state=val[0].replace('☑', '☐')
-            ttag.txtwig.tag_raise(tag_list[i][0])
-            tag_list[i][2]=False
-        else:
-            state=val[0].replace('☐', '☑')
-            ttag.txtwig.tag_lower(tag_list[i][0])
-            tag_list[i][2]=True
+        toggle_select(item)
+        nodes=cl2.tree.get_children(item)
+        for n in nodes:
+            toggle_select(n)
 
-        print(state)
-        cl2.tree.set(item, 0, state)
-
-def selectItem(item):
-    status=cl3.getstatus(item)
-    print(item, status)
-    if status == "off":
-        ttag.txtwig.tag_raise(item)
+def toggle_select(item):
+    index=int(item[1:], base=16)-1
+    obj=cl2.tree.item(item)
+    val=obj['values']
+    #☒
+    tag=tag_list[index]
+    if tag[2]:
+        state=val[0].replace('☑', '☐')
+        if tag[-2]:
+            ttag.txtwig.tag_raise(tag[0])
+        tag[2]=False
     else:
-        ttag.txtwig.tag_lower(item)
+        state=val[0].replace('☐', '☑')
+        if tag[-2]:
+            ttag.txtwig.tag_lower(tag[0])
+        tag[2]=True
 
-    cl3.hlist.selection_clear()
+    print(state)
+    cl2.tree.set(item, 0, state)
+    return tag[2]
 
 if __name__ == "__main__" :
     if len(sys.argv)<2:
@@ -179,7 +189,7 @@ if __name__ == "__main__" :
 
     root=Tk()
     root.title("textag")
-    load_tags()
+    buildTagsList()
 
     text=Text(root, font=def_font)
 

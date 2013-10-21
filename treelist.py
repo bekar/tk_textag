@@ -6,10 +6,11 @@ from tkinter.ttk import *
 
 #CURRENT_ITEM=None
 
-cols = [ "#0", "count" ]
+cols = [ "#0", "#1" ]
 list_col = [
-    [ "#0", "tag", 100, 150 ],
-    [ "count", "#", 25, 50  ]
+    [ "#0", "", 20, 20, 0 ],
+    [ "#1", "tag", 150, 200, 1 ],
+    [ "#2", "count", 25, 50, 0 ]
 ]
 
 class TreeList(Frame):
@@ -26,11 +27,11 @@ class TreeList(Frame):
         bar=Frame(self)
 
         # toolbar
-        self.button_pus=Button(bar, width=2, text="+", command=lambda: self.push())
-        self.button_pop=Button(bar, width=2, text="-")#, command=self.pop)
-        self.button_selAll=Button(bar, width=2, text="☑")#, command=self.selAll)
-        self.button_selInv=Button(bar, width=2, text="ɐ")#, command=self.selInv)
-        self.button_reset=Button(bar, width=2, text="♻")#, command=self.selInv)
+        self.button_pus=Button(bar, width=3, text="+", command=lambda: self.push())
+        self.button_pop=Button(bar, width=3, text="-")#, command=self.pop)
+        self.button_selAll=Button(bar, width=3, text="☑")#, command=self.selAll)
+        self.button_selInv=Button(bar, width=3, text="ɐ")#, command=self.selInv)
+        self.button_reset=Button(bar, width=3, text="♻")#, command=self.selInv)
 
         # packing
         self.button_pus.pack(side=LEFT, anchor=NW)
@@ -47,7 +48,7 @@ class TreeList(Frame):
         # header
         for c in list_col:
            self.tree.heading(c[0], text=c[1])
-           self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=0)
+           self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
 
         # scrollbar
         # vsb = Scrollbar(orient="vertical", command=self.tree.yview, takefocus=0)
@@ -60,7 +61,7 @@ class TreeList(Frame):
         # vsb.grid(column=1, row=0, sticky='ns', in_=self)
         # hsb.grid(column=0, row=1, sticky='ew', in_=self)
 
-        bar.pack(side=BOTTOM, fill=BOTH, expand=YES)
+        bar.pack(side=BOTTOM)
         #lst.pack(side=TOP, fill=BOTH, expand=YES)
 
 

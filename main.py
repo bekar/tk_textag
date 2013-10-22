@@ -131,24 +131,29 @@ class textag(vt100tk):
 
 def loadTags(tlist):
     root_id=leaf_id=None
-    for tag in tlist:
+    for i, tag in enumerate(tlist):
         if not tag[-1]: continue # show bit
         if tag[-3]:
             if tag[1]==0: continue
-            leaf_id=cl2.insert(tag[:3], parent=root_id)
+            leaf_id=cl2.insert(i, tag[:3], parent=root_id)
         else:
             if leaf_id:
                 obj=cl2.tree.item(leaf_id)
                 val=obj['values']
-                change=val[0].replace("├", "└")
-                cl2.tree.set(leaf_id, 0, change)
+                change=val[1].replace("├", "└")
+                cl2.tree.set(leaf_id, 1, change)
                 leaf_id=None
             if root_id:
                 obj=cl2.tree.item(root_id)
                 val=obj['values']
                 if val[-1]==0:
                     cl2.tree.delete(root_id)
-            root_id=cl2.insert(tag[:3])
+            root_id=cl2.insert(i, tag[:3])
+
+    obj=cl2.tree.item(root_id)
+    val=obj['values']
+    if val[-1]==0:
+        cl2.tree.delete(root_id)
 
 def tree_select(*events):
     #cl2.tree.update_idletasks()
@@ -163,24 +168,23 @@ def tree_select(*events):
             toggle_select(n)
 
 def toggle_select(item):
-    index=int(item[1:], base=16)-1
     obj=cl2.tree.item(item)
     val=obj['values']
     #☒
-    tag=tag_list[index]
+    tag=tag_list[val[0]]
     if tag[2]:
-        state=val[0].replace('☑', '☐')
+        state=val[1].replace('☑', '☐')
         if tag[-2]:
             ttag.txtwig.tag_raise(tag[0])
         tag[2]=False
     else:
-        state=val[0].replace('☐', '☑')
+        state=val[1].replace('☐', '☑')
         if tag[-2]:
             ttag.txtwig.tag_lower(tag[0])
         tag[2]=True
 
     print(state)
-    cl2.tree.set(item, 0, state)
+    cl2.tree.set(item, 1, state)
     return tag[2]
 
 if __name__ == "__main__" :

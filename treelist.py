@@ -6,11 +6,13 @@ from tkinter.ttk import *
 
 #CURRENT_ITEM=None
 
-cols = [ "#0", "#1" ]
+cols = [ "i", "tag", "count" ]
 list_col = [
-    [ "#0", "", 20, 20, 0 ],
-    [ "#1", "tag", 150, 200, 1 ],
-    [ "#2", "count", 25, 50, 0 ]
+    #[ "id", "label", min-width, width, streach, show ],
+    [ "#0", "", 20, 20, 0, True ],
+    [ "i", "i", 20, 20, 0, False ],
+    [ "tag", "tag", 150, 200, 1, True ],
+    [ "count", "count", 25, 50, 0, True ]
 ]
 
 class TreeList(Frame):
@@ -41,14 +43,15 @@ class TreeList(Frame):
         self.button_reset.pack(side=LEFT, anchor=NW)
 
         # treeview
-        self.tree = ttk.Treeview(self, columns=cols)
+        self.tree = ttk.Treeview(self, columns=cols, displaycolumns=cols[1:])
         self.tree.config(selectmode='extended')
         #self.tree.config(height=8)
 
         # header
         for c in list_col:
-           self.tree.heading(c[0], text=c[1])
-           self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
+            if c[-1]:
+                self.tree.heading(c[0], text=c[1])
+                self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
 
         # scrollbar
         # vsb = Scrollbar(orient="vertical", command=self.tree.yview, takefocus=0)
@@ -110,7 +113,7 @@ class TreeList(Frame):
         self.tree.heading(col,
             command=lambda col=col: self.sortby(col, int(not descending)))
 
-    def insert(self, data, pos=END, parent=''):
+    def insert(self, i, data, pos=END, parent=''):
         state=""
         if parent:
             state=" ├─"
@@ -118,17 +121,17 @@ class TreeList(Frame):
             obj=self.tree.item(parent)
             val=obj['values']
             count+=val[-1]
-            self.tree.set(parent, 1, count)
+            self.tree.set(parent, 2, count)
         if data[2]: state+='☑ '
         else: state+='☐ '
-        row = [ state+data[0], data[1] ]
+        row = [ i, state+data[0], data[1] ]
         id=self.tree.insert(parent, pos, value=row, open=True)
         self.top+=1
         return id
 
     def push(self):
-        row = [  str(self.top), 0, '☑' ]
-        self.insert(row)
+        row = [  str(self.top), 0, False ]
+        self.insert(self.top, row)
 
     def article_properties(self):
         win=Toplevel()#padx=7, pady=7)

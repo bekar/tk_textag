@@ -2,9 +2,6 @@
 
 from tkinter import *
 from tkinter import ttk
-from tkinter.ttk import *
-
-#CURRENT_ITEM=None
 
 cols = [ "i", "tag", "count" ]
 list_col = [
@@ -25,15 +22,14 @@ class TreeList(Frame):
         self.binding()
 
     def makeWidgets(self):
-        lst=Frame(self)
         bar=Frame(self)
+        tls=Frame(self)
 
-        # toolbar
-        self.button_pus=Button(bar, width=3, text="+", command=lambda: self.push())
-        self.button_pop=Button(bar, width=3, text="-")#, command=self.pop)
-        self.button_selAll=Button(bar, width=3, text="☑")#, command=self.selAll)
-        self.button_selInv=Button(bar, width=3, text="ɐ")#, command=self.selInv)
-        self.button_reset=Button(bar, width=3, text="♻")#, command=self.selInv)
+        self.button_pus=Button(bar, text="+", command=lambda: self.push())
+        self.button_pop=Button(bar, text="-")#, command=self.pop)
+        self.button_selAll=Button(bar, text="☑")#, command=self.selAll)
+        self.button_selInv=Button(bar, text="ɐ")#, command=self.selInv)
+        self.button_reset=Button(bar, text="♻")#, command=self.selInv)
 
         # packing
         self.button_pus.pack(side=LEFT, anchor=NW)
@@ -43,33 +39,31 @@ class TreeList(Frame):
         self.button_reset.pack(side=LEFT, anchor=NW)
 
         # treeview
-        self.tree = ttk.Treeview(self, columns=cols, displaycolumns=cols[1:])
+        self.tree = ttk.Treeview(tls, columns=cols, displaycolumns=cols[1:])
         self.tree.config(selectmode='extended')
-        #self.tree.config(height=8)
 
         # header
         for c in list_col:
             if c[-1]:
-                self.tree.heading(c[0], text=c[1])
+                self.tree.heading(c[0], text=c[1], command=lambda col=c[0]: self.sortby(col, 0))
                 self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
 
         # scrollbar
-        # vsb = Scrollbar(orient="vertical", command=self.tree.yview, takefocus=0)
-        # hsb = Scrollbar(orient="horizontal", command=self.tree.xview, takefocus=0)
-        # self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        vsb = Scrollbar(tls, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=lambda f, l: autoscroll(vsb, f, l))
+        hsb = Scrollbar(tls, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(xscrollcommand=lambda f, l: autoscroll(hsb, f, l))
 
         # grid
-        #self.tree.grid(column=0, row=0, sticky='news', in_=self)
-        self.tree.pack(fill=BOTH, expand=YES)
-        # vsb.grid(column=1, row=0, sticky='ns', in_=self)
-        # hsb.grid(column=0, row=1, sticky='ew', in_=self)
+        self.tree.grid(row=0, column=0, sticky='news')
+        vsb.grid(column=1, row=0, sticky='ns')
+        hsb.grid(column=0, row=1, sticky='ew')
+        tls.columnconfigure(0, weight=1)
+        tls.rowconfigure(0, weight=1)
 
+        # packing
+        tls.pack(side=TOP, fill=BOTH, expand=YES)
         bar.pack(side=BOTTOM)
-        #lst.pack(side=TOP, fill=BOTH, expand=YES)
-
-
-        # self.grid_columnconfigure(0, weight=1)
-        # self.grid_rowconfigure(0, weight=1)
 
     def binding(self):
         self.tree.bind('<Button-3>', self.call_popup)
@@ -134,7 +128,7 @@ class TreeList(Frame):
         self.insert(self.top, row)
 
     def article_properties(self):
-        win=Toplevel()#padx=7, pady=7)
+        win=Toplevel()
         win.title("Properties")
         win.bind('<Key-Escape>', lambda event: win.destroy())
         Label(win, text="hello").pack()
@@ -142,12 +136,22 @@ class TreeList(Frame):
     def clear_tree(self):
         x = self.tree.get_children()
         for item in x: self.tree.delete(item)
+        self.top=0
+
+def autoscroll(sbar, first, last):
+    first, last = float(first), float(last)
+    if first <= 0 and last >= 1:
+        sbar.grid_remove()
+    else:
+        sbar.grid()
+    sbar.set(first, last)
 
 if __name__ == '__main__':
     root = Tk()
 
-    tl=TreeList()
+    tl=TreeList(root)
     tl.pack(fill=BOTH, expand=YES)
+    #tl.grid(column=0, row=0)
 
     root.bind('<Key-Escape>', lambda e: exit())
     root.mainloop()

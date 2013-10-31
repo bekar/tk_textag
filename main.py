@@ -2,11 +2,14 @@
 
 import os, sys
 from tkinter import *
-import treelist as tlist
 
 filepath=os.path.abspath(__file__)
 fullpath=os.path.dirname(filepath)
+sys.path.append(fullpath)
+
 sys.path.append(fullpath+"/..")
+
+import treelist as tlist
 
 from vtk100_colors.main import *
 
@@ -19,7 +22,7 @@ font_face = [
 
 tag_list = []
 
-def buildTagsList(tl=tag_list):
+def importags(tl=tag_list):
     title = [
         { "fg": "red", "bold": True, "underline": True }
     ]
@@ -36,14 +39,6 @@ def buildTagsList(tl=tag_list):
         { "fg": "green" }
     ]
 
-    #[ label, show, parent, object ]
-    # tl.append([ "filesys", True, "", None ])
-    # tl.append([ "executable", True, "filesys", exe ])
-    # tl.append([ "infile", True, "filesys", infile ])
-    # tl.append([ "folder", True, "filesys", folder ])
-    # tl.append([ "title", True, "", title ])
-    # tl.append([ "code", True, "", code ])
-
     #[ label, count, state, parent, object, show ]
     tl.append([ "filesys", 0, True, None, None, True ])
     tl.append([ "executable", 0, True, "filesys", exe, True ])
@@ -57,7 +52,6 @@ class textag(vt100tk):
         vt100tk.__init__(self, txt_wig)
         self.isapp=True
         self.ex_tmp=None
-        self.stats = dict()
         if string: self.parser(string)
 
     def tag_sgr(self, code, pre, cur):
@@ -129,46 +123,50 @@ class textag(vt100tk):
             self.txtwig.tag_bind(label, "<Leave>", self._leave)
             self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label))
 
-def loadTags(tlist):
+    def reset_count(self):
+        for tag in tag_list:
+            tag[1]=0
+
+def loadTags(tlist, cl):
     root_id=leaf_id=None
     for i, tag in enumerate(tlist):
         if not tag[-1]: continue # show bit
         if tag[-3]:
             if tag[1]==0: continue
-            leaf_id=cl2.insert(i, tag[:3], parent=root_id)
+            leaf_id=cl.insert(i, tag[:3], parent=root_id)
         else:
             if leaf_id:
-                obj=cl2.tree.item(leaf_id)
+                obj=cl.tree.item(leaf_id)
                 val=obj['values']
                 change=val[1].replace("├", "└")
-                cl2.tree.set(leaf_id, 1, change)
+                cl.tree.set(leaf_id, 1, change)
                 leaf_id=None
             if root_id:
-                obj=cl2.tree.item(root_id)
+                obj=cl.tree.item(root_id)
                 val=obj['values']
                 if val[-1]==0:
-                    cl2.tree.delete(root_id)
-            root_id=cl2.insert(i, tag[:3])
+                    cl.tree.delete(root_id)
+            root_id=cl.insert(i, tag[:3])
 
-    obj=cl2.tree.item(root_id)
+    obj=cl.tree.item(root_id)
     val=obj['values']
     if val[-1]==0:
-        cl2.tree.delete(root_id)
+        cl.tree.delete(root_id)
 
 def tree_select(*events):
-    #cl2.tree.update_idletasks()
-    sel=cl2.tree.selection()
-    # foc=cl2.tree.focus()
+    #cl.tree.update_idletasks()
+    sel=cl.tree.selection()
+    # foc=cl.tree.focus()
     # print(sel, foc)
     if not sel: return
     for item in sel:
         toggle_select(item)
-        nodes=cl2.tree.get_children(item)
+        nodes=cl.tree.get_children(item)
         for n in nodes:
             toggle_select(n)
 
 def toggle_select(item):
-    obj=cl2.tree.item(item)
+    obj=cl.tree.item(item)
     val=obj['values']
     #☒
     tag=tag_list[val[0]]
@@ -184,7 +182,7 @@ def toggle_select(item):
         tag[2]=True
 
     print(state)
-    cl2.tree.set(item, 1, state)
+    cl.tree.set(item, 1, state)
     return tag[2]
 
 if __name__ == "__main__" :
@@ -193,7 +191,7 @@ if __name__ == "__main__" :
 
     root=Tk()
     root.title("textag")
-    buildTagsList()
+    importags()
 
     text=Text(root, font=def_font)
 
@@ -201,14 +199,14 @@ if __name__ == "__main__" :
     string=check_output(sys.argv[1:], universal_newlines=True)
     ttag=textag(root, text, string)
 
-    cl2=tlist.TreeList()
-    cl2.tree.bind('<Button-1>', lambda e: tree_select(e))
-    cl2.tree.bind('<space>', tree_select)
+    cl=tlist.TreeList()
+    cl.tree.bind('<Button-1>', lambda e: tree_select(e))
+    cl.tree.bind('<space>', tree_select)
 
-    loadTags(tag_list)
+    loadTags(tag_list, cl)
 
     text.pack(side=LEFT, expand=YES, fill=BOTH)
-    cl2.pack(side=RIGHT, expand=YES, fill=BOTH)
+    cl.pack(side=RIGHT, expand=YES, fill=BOTH)
 
     root.bind('<Key-Escape>', lambda event: quit())
     root.mainloop()

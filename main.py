@@ -23,29 +23,8 @@ font_face = [
 tag_list = []
 
 def importags(tl=tag_list):
-    title = [
-        { "fg": "red", "bold": True, "underline": True }
-    ]
-    code = [
-        { "fg": "blue", "italic": True }
-    ]
-    exe = [
-        { "fg": "green", "bold": True }
-    ]
-    folder = [
-        { "fg": "blue", "bold": True }
-    ]
-    infile = [
-        { "fg": "green" }
-    ]
-
-    #[ label, count, state, parent, object, show ]
-    tl.append([ "filesys", 0, True, None, None, True ])
-    tl.append([ "executable", 0, True, "filesys", exe, True ])
-    tl.append([ "infile", 0, True, "filesys", infile, True ])
-    tl.append([ "folder", 0, True, "filesys", folder, True ])
-    tl.append([ "title", 0, True, None, title, True ])
-    tl.append([ "code", 0, True, None, code, True ])
+    #[ label, count, state, state, parent, object, show, dump ]
+    pass
 
 class textag(vt100tk):
     def __init__(self, parent, txt_wig, string=None):
@@ -55,15 +34,16 @@ class textag(vt100tk):
         if string: self.parser(string)
 
     def tag_sgr(self, code, pre, cur):
-        if not code: return
+        if not code: return None
         tag=int(code)
-        if tag == 0: return
+        if tag == 0: return None
         if   self.extend == 53: tag="bg"+code; # 48+5+code
         elif self.extend == 43: tag="fg"+code; # 38+5+code
         elif self.extend: self.extend+=tag; return; #2nd skip
         elif tag in [ 38, 48 ]: self.extend=tag; return;
         self.tag_me(tag) # extention hook
         self.txtwig.tag_add(tag, pre, cur)
+        return tag
 
     def tag_me(self, tag):
         #print("tag", tag, self.ex_tmp)
@@ -72,7 +52,7 @@ class textag(vt100tk):
         elif 39 < tag < 48: self.attrib["bg"]=pallet8[tag-40]
         elif 29 < tag < 38: self.attrib["fg"]=pallet8[tag-30]
         elif 0 < tag < 10: self.attrib[font_face[tag]]=True
-        else: self.attrib["unknown"]=tag
+        else: self.attrib["xx"]=tag
         if self.ex_tmp: self.attrib[self.ex_tmp]=int(tag[2:]); self.ex_tmp=None
 
     def _enter(self, event):
@@ -88,12 +68,25 @@ class textag(vt100tk):
         tooltip.add_command(label=text)
         tooltip.tk_popup(ex,ey)
 
-    def counter(self, found):
+    def counter(self, found, pre, cur):
+        #print(found)
+        try:
+            xx=found["xx"]
+        except:
+            xx=""
+
         for tag in tag_list:
-            if tag[-2] == None: continue
-            for attrib in tag[-2]:
+            if not tag[-3]: continue # if parent
+            if isinstance(tag[-3], int):
+                if xx==tag[-3]:
+                    tag[1]+=1
+                    return tag[0]
+                continue
+
+            for attrib in tag[-3]:
                 if attrib == found:
                     tag[1]+=1
+                    #print(self.txtwig.get(pre, cur))
                     return tag[0]
 
         label=""
@@ -101,15 +94,16 @@ class textag(vt100tk):
             label += str(key)+":"
             label += str(self.attrib[key])
 
-        tag_list.append([ label, 1, True, None, [ found ], True])
+        tag_list.append([ label, 1, True, None, [ found ], True, False])
         return label;
 
 
     def de_code(self, fp, pre, cur):
         self.attrib = dict()
-        label=vt100tk.de_code(self, fp, pre, cur)
+        vt100tk.de_code(self, fp, pre, cur)
+
         if self.attrib:
-            label=self.counter(self.attrib)
+            label=self.counter(self.attrib, pre, cur)
             self.txtwig.tag_add(label, pre, cur)
             self.txtwig.tag_lower(label)
             self.txtwig.tag_config(label,
@@ -128,18 +122,20 @@ class textag(vt100tk):
             tag[1]=0
 
 def loadTags(tlist, cl):
+    # TODO: multi-level tree (recursive)
+    #[ label, count, state, parent, object, show, dump ]
     root_id=leaf_id=None
     for i, tag in enumerate(tlist):
-        if not tag[-1]: continue # show bit
-        if tag[-3]:
-            if tag[1]==0: continue
+        if not tag[-2]: continue # show bit
+        if tag[-4]:
+            if tag[1]==0: continue # count
             leaf_id=cl.insert(i, tag[:3], parent=root_id)
-        else:
+        else: # if root
             if leaf_id:
                 obj=cl.tree.item(leaf_id)
                 val=obj['values']
-                change=val[1].replace("├", "└")
-                cl.tree.set(leaf_id, 1, change)
+                change=val[2].replace("├", "└")
+                cl.tree.set(leaf_id, 2, change)
                 leaf_id=None
             if root_id:
                 obj=cl.tree.item(root_id)
@@ -148,8 +144,10 @@ def loadTags(tlist, cl):
                     cl.tree.delete(root_id)
             root_id=cl.insert(i, tag[:3])
 
+    # clear root
     obj=cl.tree.item(root_id)
     val=obj['values']
+
     if val[-1]==0:
         cl.tree.delete(root_id)
 
@@ -169,20 +167,25 @@ def toggle_select(item):
     obj=cl.tree.item(item)
     val=obj['values']
     #☒
+    # TODO: state handle
+    # return
+
     tag=tag_list[val[0]]
-    if tag[2]:
-        state=val[1].replace('☑', '☐')
-        if tag[-2]:
+    if tag[2]: # if state
+        state=val[2].replace('☑', '☐')
+        if tag[-3]:
             ttag.txtwig.tag_raise(tag[0])
-        tag[2]=False
+        tag[2]=False #filp state
     else:
-        state=val[1].replace('☐', '☑')
-        if tag[-2]:
+        state=val[2].replace('☐', '☑')
+        if tag[-3]:
             ttag.txtwig.tag_lower(tag[0])
-        tag[2]=True
+        tag[2]=True # filp state
 
     print(state)
-    cl.tree.set(item, 1, state)
+    cl.tree.set(item, 1, tag[2])
+    cl.tree.set(item, 2, state)
+
     return tag[2]
 
 if __name__ == "__main__" :
@@ -191,6 +194,10 @@ if __name__ == "__main__" :
 
     root=Tk()
     root.title("textag")
+
+    import tagmap as tag
+    tag_list=tag.tag_list
+    importags=tag.importags
     importags()
 
     text=Text(root, font=def_font)

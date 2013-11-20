@@ -3,11 +3,13 @@
 from tkinter import *
 from tkinter import ttk
 
-cols = [ "i", "tag", "count" ]
+cols = [ "i", "state", "tag", "count" ]
+
 list_col = [
-    #[ "id", "label", min-width, width, streach, show ],
+   #[ "id", "label", min-width, width, stretch, show ],
     [ "#0", "", 20, 20, 0, True ],
-    [ "i", "i", 20, 20, 0, False ],
+    [ "i", "i", 10, 10, 0, False ],
+    [ "state", "state", 10, 10, 0, False ],
     [ "tag", "tag", 150, 200, 1, True ],
     [ "count", "count", 25, 50, 0, True ]
 ]
@@ -39,7 +41,7 @@ class TreeList(Frame):
         self.button_reset.pack(side=LEFT, anchor=NW)
 
         # treeview
-        self.tree = ttk.Treeview(tls, columns=cols, displaycolumns=cols[1:])
+        self.tree = ttk.Treeview(tls, columns=cols, displaycolumns=cols[2:])
         self.tree.config(selectmode='extended')
 
         # header
@@ -115,11 +117,13 @@ class TreeList(Frame):
             obj=self.tree.item(parent)
             val=obj['values']
             count+=val[-1]
-            self.tree.set(parent, 2, count)
-        if data[2]: state+='☑ '
+            self.tree.set(parent, 3, count)
+
+        if data[-1]: state+='☑ '
         else: state+='☐ '
-        row = [ i, state+data[0], data[1] ]
-        id=self.tree.insert(parent, pos, value=row, open=True)
+
+        row = [ i, data[2], state+data[0], data[1] ]
+        id=self.tree.insert(parent, pos, value=row, open=True)#, text=data[0])
         self.top+=1
         return id
 

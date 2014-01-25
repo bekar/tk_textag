@@ -73,21 +73,20 @@ class textag(vt100tk):
         try:
             xx=found["xx"]
         except:
-            xx=""
+            xx=0
 
         for tag in tag_list:
             if not tag[-3]: continue # if parent
             if isinstance(tag[-3], int):
                 if xx==tag[-3]:
                     tag[1]+=1
-                    return tag[0]
+                    return tag[0], xx
                 continue
 
             for attrib in tag[-3]:
                 if attrib == found:
                     tag[1]+=1
-                    #print(self.txtwig.get(pre, cur))
-                    return tag[0]
+                    return tag[0], xx
 
         label=""
         for key in found:
@@ -95,7 +94,7 @@ class textag(vt100tk):
             label += str(self.attrib[key])
 
         tag_list.append([ label, 1, True, None, [ found ], True, False])
-        return label;
+        return label, xx;
 
 
     def de_code(self, fp, pre, cur):
@@ -103,7 +102,7 @@ class textag(vt100tk):
         vt100tk.de_code(self, fp, pre, cur)
 
         if self.attrib:
-            label=self.counter(self.attrib, pre, cur)
+            label, xx=self.counter(self.attrib, pre, cur)
             self.txtwig.tag_add(label, pre, cur)
             self.txtwig.tag_lower(label)
             self.txtwig.tag_config(label,

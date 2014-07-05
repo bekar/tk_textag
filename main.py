@@ -1,185 +1,193 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os, sys
-from tkinter import *
+import tkinter as tk
+import tkinter.font as tkFont
 
 filepath=os.path.abspath(__file__)
 fullpath=os.path.dirname(filepath)
 sys.path.append(fullpath)
-
 sys.path.append(fullpath+"/..")
 
 import treelist as tlist
-
-from vtk100_colors.main import *
-
-def_color = [ "black", "white" ]
+from vtk100_colors.main import VT100
+from tk_tooltip.main import ToolTip
 
 font_face = [
-    "default", "bold", "faint", "italic", "underline", "blink", "rapid-blink",
-    "negative", "hide", "strike-out"
+    "default", "bold", "faint", "italic", "underline", "blink",
+    "rapid-blink", "negative", "hide", "strike-out"
 ]
 
 tag_list = []
 
 def importags(tl=tag_list):
-    #[ label, count, state, state, parent, object, show, dump ]
-    pass
+    exec(open("tag.dump").read())
 
-class textag(vt100tk):
+class TexTag(VT100):
     def __init__(self, parent, txt_wig, string=None):
-        vt100tk.__init__(self, txt_wig)
-        self.isapp=True
-        self.ex_tmp=None
+        VT100.__init__(self, txt_wig)
+        VT100.loadTags(self)
+        self.tooltip = ToolTip(self.txtwig,
+                               delay=100,
+                               state="disabled",
+                               follow_mouse=1
+        )
+
+        self.tooltip.motion()
         if string: self.parser(string)
 
-    def tag_sgr(self, code, pre, cur):
-        if not code: return None
-        tag=int(code)
-        if tag == 0: return None
-        if   self.extend == 53: tag="bg"+code; # 48+5+code
-        elif self.extend == 43: tag="fg"+code; # 38+5+code
-        elif self.extend: self.extend+=tag; return; #2nd skip
-        elif tag in [ 38, 48 ]: self.extend=tag; return;
-        self.tag_me(tag) # extention hook
-        self.txtwig.tag_add(tag, pre, cur)
-        return tag
+    def tagSGR(self, code):
+        tag = VT100.tagSGR(self, code)
+        if not tag: return
 
-    def tag_me(self, tag):
-        #print("tag", tag, self.ex_tmp)
-        if   self.extend==53: self.ex_tmp="bg"; self.extend=0;
-        elif self.extend==43: self.ex_tmp="fg"; self.extend=0;
-        elif 39 < tag < 48: self.attrib["bg"]=pallet8[tag-40]
-        elif 29 < tag < 38: self.attrib["fg"]=pallet8[tag-30]
-        elif 0 < tag < 10: self.attrib[font_face[tag]]=True
-        else: self.attrib["xx"]=tag
-        if self.ex_tmp: self.attrib[self.ex_tmp]=int(tag[2:]); self.ex_tmp=None
+        if type(tag) is str:
+            self.attrib[tag[-2:]] = tag[:-2]
+            return
 
-    def _enter(self, event):
+        if tag > 256: self.attrib["xx"] = tag
+        elif 39 < tag < 48: self.attrib["bg"] = self.pallet8[tag-40]
+        elif 29 < tag < 38: self.attrib["fg"] = self.pallet8[tag-30]
+        elif 0 < tag < 10: self.attrib[font_face[tag]] = True
+
+    def _enter(self, event, text):
         self.txtwig.config(cursor="hand2")
+        self.tooltip.configure(state="normal", text=text)
+        self.tooltip._schedule()
 
     def _leave(self, event):
         self.txtwig.config(cursor="")
+        self.tooltip._unschedule()
+        self.tooltip._hide()
+        self.tooltip.configure(state="disable")
 
-    def _click(self, event, text):
-        ex=event.x_root
-        ey=event.y_root
-        tooltip = Menu(tearoff=0)
-        tooltip.add_command(label=text)
-        tooltip.tk_popup(ex,ey)
+    def _click(self, event, label, text=None):
+        ex = event.x_root
+        ey = event.y_root
+        if label == "url":
+            os.system("xdg-open %s"%text)
+            return
 
-    def counter(self, found, pre, cur):
-        #print(found)
-        try:
-            xx=found["xx"]
-        except:
-            xx=0
+        pop = tk.Menu(tearoff=0)
+        pop.add_command(label=label, background="lightyellow", state="disable")
+        pop.add_checkbutton(label="Verifed")
+        pop.add_command(label="Remove")
+        pop.tk_popup(ex, ey)
+
+    def counter(self, found):
+        if "xx" in found: xx = found["xx"]
+        else: xx = 0
 
         for tag in tag_list:
             if not tag[-3]: continue # if parent
             if isinstance(tag[-3], int):
-                if xx==tag[-3]:
-                    tag[1]+=1
+                if xx == tag[-3]:
+                    tag[1] += 1
                     return tag[0], xx
                 continue
 
             for attrib in tag[-3]:
                 if attrib == found:
-                    tag[1]+=1
+                    tag[1] += 1
                     return tag[0], xx
 
-        label=""
+        label = ""
         for key in found:
-            label += str(key)+":"
+            label += str(key) + ":"
             label += str(self.attrib[key])
 
         tag_list.append([ label, 1, True, None, [ found ], True, False])
         return label, xx;
 
-
-    def de_code(self, fp, pre, cur):
+    def de_code(self, fp):
         self.attrib = dict()
-        vt100tk.de_code(self, fp, pre, cur)
+        VT100.de_code(self, fp)
 
         if self.attrib:
-            label, xx=self.counter(self.attrib, pre, cur)
-            self.txtwig.tag_add(label, pre, cur)
+            label, xx = self.counter(self.attrib)
+            self.txtwig.tag_add(label, self.pre, self.cur)
             self.txtwig.tag_lower(label)
             self.txtwig.tag_config(label,
                     foreground = "black",
                     background = "white",
-                    font = def_font,
-                    underline = FALSE,
-                    overstrike = FALSE
+                    font = self.txtwig['font'],
+                    underline = 'false',
+                    overstrike = 'false'
                 )
-            self.txtwig.tag_bind(label, "<Enter>", self._enter)
+            text = self.txtwig.get(self.pre, self.cur)
+            # TODO: tooltip <Enter>, <Leave> overrid
+            self.txtwig.tag_bind(label, "<Enter>", lambda e: self._enter(e, label))
             self.txtwig.tag_bind(label, "<Leave>", self._leave)
-            self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label))
+            self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label, text))
 
-    def reset_count(self):
+    def clean_all(self):
+        for tag in self.txtwig.tag_names():
+            self.txtwig.tag_remove(tag, "1.0", "end")
+
         for tag in tag_list:
-            tag[1]=0
+            tag[1] = 0
+
+        self.txtwig.delete("1.0", "end")
 
 def loadTags(tlist, cl):
     # TODO: multi-level tree (recursive)
     #[ label, count, state, parent, object, show, dump ]
-    root_id=leaf_id=None
+    root_id = leaf_id = None
     for i, tag in enumerate(tlist):
         if not tag[-2]: continue # show bit
         if tag[-4]:
-            if tag[1]==0: continue # count
-            leaf_id=cl.insert(i, tag[:3], parent=root_id)
+            if tag[1] == 0: continue # count
+            leaf_id = cl.insert(i, tag[:3], parent=root_id)
         else: # if root
             if leaf_id:
-                obj=cl.tree.item(leaf_id)
-                val=obj['values']
-                change=val[2].replace("├", "└")
+                obj = cl.tree.item(leaf_id)
+                val = obj['values']
+                change = val[2].replace("├", "└")
                 cl.tree.set(leaf_id, 2, change)
-                leaf_id=None
+                leaf_id = None
             if root_id:
-                obj=cl.tree.item(root_id)
-                val=obj['values']
-                if val[-1]==0:
+                obj = cl.tree.item(root_id)
+                val = obj['values']
+                if val[-1] == 0:
                     cl.tree.delete(root_id)
             root_id=cl.insert(i, tag[:3])
 
     # clear root
-    obj=cl.tree.item(root_id)
-    val=obj['values']
+    obj = cl.tree.item(root_id)
+    val = obj['values']
 
-    if val[-1]==0:
+    if val[-1] == 0:
         cl.tree.delete(root_id)
 
 def tree_select(*events):
     #cl.tree.update_idletasks()
-    sel=cl.tree.selection()
+    sel = cl.tree.selection()
     # foc=cl.tree.focus()
     # print(sel, foc)
     if not sel: return
     for item in sel:
         toggle_select(item)
-        nodes=cl.tree.get_children(item)
+        nodes = cl.tree.get_children(item)
         for n in nodes:
             toggle_select(n)
 
 def toggle_select(item):
-    obj=cl.tree.item(item)
-    val=obj['values']
-    #☒
+    obj = cl.tree.item(item)
+    val = obj['values']
+    # ☒
     # TODO: state handle
     # return
 
-    tag=tag_list[val[0]]
+    tag = tag_list[val[0]]
     if tag[2]: # if state
-        state=val[2].replace('☑', '☐')
+        state = val[2].replace('☑', '☐')
         if tag[-3]:
             ttag.txtwig.tag_raise(tag[0])
-        tag[2]=False #filp state
+        tag[2] = False #filp state
     else:
-        state=val[2].replace('☐', '☑')
+        state = val[2].replace('☐', '☑')
         if tag[-3]:
             ttag.txtwig.tag_lower(tag[0])
-        tag[2]=True # filp state
+        tag[2] = True # filp state
 
     print(state)
     cl.tree.set(item, 1, tag[2])
@@ -191,28 +199,32 @@ if __name__ == "__main__" :
     if len(sys.argv)<2:
          print("Argument(s) Missing", file=sys.stderr); exit(1);
 
-    root=Tk()
+    root = tk.Tk()
     root.title("textag")
 
+    # NOTE: fix this
     import tagmap as tag
     tag_list=tag.tag_list
     importags=tag.importags
     importags()
 
-    text=Text(root, font=def_font)
+    f = tkFont.Font(family="DejaVuSansMono", size=11)
+    text = tk.Text(font=f)
 
     from subprocess import check_output
-    string=check_output(sys.argv[1:], universal_newlines=True)
-    ttag=textag(root, text, string)
+    string = check_output(sys.argv[1:], universal_newlines=True)
+    ttag = TexTag(root, text, string)
 
-    cl=tlist.TreeList()
+    cl = tlist.TreeList()
     cl.tree.bind('<Button-1>', lambda e: tree_select(e))
     cl.tree.bind('<space>', tree_select)
 
     loadTags(tag_list, cl)
 
-    text.pack(side=LEFT, expand=YES, fill=BOTH)
-    cl.pack(side=RIGHT, expand=YES, fill=BOTH)
+    text.pack(side='left', expand=1, fill='both')
+    cl.pack(side='right', expand=1, fill='both')
 
-    root.bind('<Key-Escape>', lambda event: quit())
+    root.bind('<Key-Escape>', lambda e: root.quit())
+    root.bind('<Control-c>', lambda e: ttag.clean_all())
+
     root.mainloop()

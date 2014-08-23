@@ -1,43 +1,48 @@
 #!/usr/bin/env python3
 
 import os, sys
-import tkinter as tk
+import webbrowser
+from tkinter import *
+from tkinter.ttk import *
 import tkinter.font as tkFont
 
-filepath=os.path.abspath(__file__)
-fullpath=os.path.dirname(filepath)
+filepath = os.path.abspath(__file__)
+fullpath = os.path.dirname(filepath)
 sys.path.append(fullpath)
 sys.path.append(fullpath+"/..")
 
 import treelist as tlist
-from vtk100_colors.main import VT100
+from vtk100_colors import main as vt
 from tk_tooltip.main import ToolTip
 
-font_face = [
+font_face = (
     "default", "bold", "faint", "italic", "underline", "blink",
     "rapid-blink", "negative", "hide", "strike-out"
-]
+)
 
 tag_list = []
 
 def importags(tl=tag_list):
     exec(open("tag.dump").read())
 
-class TexTag(VT100):
-    def __init__(self, parent, txt_wig, string=None):
-        VT100.__init__(self, txt_wig)
-        VT100.loadTags(self)
-        self.tooltip = ToolTip(self.txtwig,
+class TexTag(vt.VT100):
+    def __init__(self, txtwig=None, string=None):
+        if txtwig and string:
+            self.txtwig = txtwig
+            self.loadTags(txtwig)
+            self.parser(txtwig, string)
+
+    def loadTags(self, txtwig):
+        vt.VT100.loadTags(self, txtwig)
+        self.tooltip = ToolTip(txtwig,
                                delay=100,
                                state="disabled",
                                follow_mouse=1
         )
-
         self.tooltip.motion()
-        if string: self.parser(string)
 
     def tagSGR(self, code):
-        tag = VT100.tagSGR(self, code)
+        tag = vt.VT100.tagSGR(self, code)
         if not tag: return
 
         if type(tag) is str:
@@ -64,10 +69,10 @@ class TexTag(VT100):
         ex = event.x_root
         ey = event.y_root
         if label == "url":
-            os.system("xdg-open %s"%text)
+            webbrowser.open(text)
             return
 
-        pop = tk.Menu(tearoff=0)
+        pop = Menu(tearoff=0)
         pop.add_command(label=label, background="lightyellow", state="disable")
         pop.add_checkbutton(label="Verifed")
         pop.add_command(label="Remove")
@@ -100,7 +105,7 @@ class TexTag(VT100):
 
     def de_code(self, fp):
         self.attrib = dict()
-        VT100.de_code(self, fp)
+        vt.VT100.de_code(self, fp)
 
         if self.attrib:
             label, xx = self.counter(self.attrib)
@@ -120,8 +125,8 @@ class TexTag(VT100):
             self.txtwig.tag_bind(label, "<Button-1>", lambda e: self._click(e, label, text))
 
     def clean_all(self):
-        for tag in self.txtwig.tag_names():
-            self.txtwig.tag_remove(tag, "1.0", "end")
+        # for tag in self.txtwig.tag_names():
+        #     self.txtwig.tag_remove(tag, "1.0", "end")
 
         for tag in tag_list:
             tag[1] = 0
@@ -157,6 +162,9 @@ def loadTags(tlist, cl):
 
     if val[-1] == 0:
         cl.tree.delete(root_id)
+
+    for tag in tag_list:
+        tag[1] = 0
 
 def tree_select(*events):
     #cl.tree.update_idletasks()
@@ -199,21 +207,21 @@ if __name__ == "__main__" :
     if len(sys.argv)<2:
          print("Argument(s) Missing", file=sys.stderr); exit(1);
 
-    root = tk.Tk()
+    root = Tk()
     root.title("textag")
 
     # NOTE: fix this
     import tagmap as tag
-    tag_list=tag.tag_list
-    importags=tag.importags
+    tag_list = tag.tag_list
+    importags = tag.importags
     importags()
 
     f = tkFont.Font(family="DejaVuSansMono", size=11)
-    text = tk.Text(font=f)
+    text = Text(font=f)
 
     from subprocess import check_output
     string = check_output(sys.argv[1:], universal_newlines=True)
-    ttag = TexTag(root, text, string)
+    ttag = TexTag(text, string)
 
     cl = tlist.TreeList()
     cl.tree.bind('<Button-1>', lambda e: tree_select(e))

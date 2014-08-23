@@ -51,9 +51,9 @@ class TreeList(Frame):
                 self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
 
         # scrollbar
-        vsb = Scrollbar(tls, orient="vertical", command=self.tree.yview)
+        vsb = ttk.Scrollbar(tls, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=lambda f, l: autoscroll(vsb, f, l))
-        hsb = Scrollbar(tls, orient="horizontal", command=self.tree.xview)
+        hsb = ttk.Scrollbar(tls, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=lambda f, l: autoscroll(hsb, f, l))
 
         # grid

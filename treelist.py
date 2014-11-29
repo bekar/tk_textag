@@ -3,16 +3,16 @@
 from tkinter import *
 from tkinter import ttk
 
-cols = [ "i", "state", "tag", "count" ]
-
-list_col = [
+col_attrib = (
    #[ "id", "label", min-width, width, stretch, show ],
-    [ "#0", "", 20, 20, 0, True ],
-    [ "i", "i", 10, 10, 0, False ],
-    [ "state", "state", 10, 10, 0, False ],
-    [ "tag", "tag", 150, 200, 1, True ],
-    [ "count", "count", 25, 50, 0, True ]
-]
+    ( "#0", "", 20, 20, 0, True ),
+    ( "i", "i", 10, 10, 0, False ),
+    ( "state", "state", 10, 10, 0, False ),
+    ( "tag", "tag", 150, 200, 1, True ),
+    ( "count", "count", 25, 50, 0, True )
+)
+
+cols = [ "i", "state", "tag", "count" ]
 
 class TreeList(Frame):
     def __init__(self, parent=None):
@@ -23,32 +23,35 @@ class TreeList(Frame):
         self.makePopUp()
         self.binding()
 
+
     def makeWidgets(self):
         bar=Frame(self)
-        tls=Frame(self)
+        bar.pack(side='bottom')
+        button_lst = (
+            ( '+', self.push ),
+            ( "-", self.pop ),
+            ( "☑", self.selAll ),
+            ( "ɐ", self.selInv ),
+            ( "♻", self.refresh )
+        )
 
-        self.button_pus=Button(bar, text="+", command=lambda: self.push())
-        self.button_pop=Button(bar, text="-")#, command=self.pop)
-        self.button_selAll=Button(bar, text="☑")#, command=self.selAll)
-        self.button_selInv=Button(bar, text="ɐ")#, command=self.selInv)
-        self.button_reset=Button(bar, text="♻")#, command=self.selInv)
-
-        # packing
-        self.button_pus.pack(side=LEFT, anchor=NW)
-        self.button_pop.pack(side=LEFT, anchor=NW)
-        self.button_selAll.pack(side=LEFT, anchor=NW)
-        self.button_selInv.pack(side=LEFT, anchor=NW)
-        self.button_reset.pack(side=LEFT, anchor=NW)
+        for t, f in button_lst:
+            btn = Button(bar, text=t, takefocus=0, command=f)
+            btn.pack(side='left', anchor='nw')
 
         # treeview
+        tls=Frame(self)
+        tls.pack(side='top', fill='both', expand=1)
+
         self.tree = ttk.Treeview(tls, columns=cols, displaycolumns=cols[2:])
         self.tree.config(selectmode='extended')
 
-        # header
-        for c in list_col:
-            if c[-1]:
-                self.tree.heading(c[0], text=c[1], command=lambda col=c[0]: self.sortby(col, 0))
-                self.tree.column(c[0], minwidth=c[2], width=c[3], stretch=c[4])
+        # make header
+        for i, txt, mwid, wid, streh, show in col_attrib:
+            if not show: continue
+            self.tree.heading(i, text=txt)
+            self.tree.heading(i, command=lambda a=i: self.sortby(a, 0))
+            self.tree.column(i, minwidth=mwid, width=wid, stretch=streh)
 
         # scrollbar
         vsb = ttk.Scrollbar(tls, orient="vertical", command=self.tree.yview)
@@ -63,14 +66,12 @@ class TreeList(Frame):
         tls.columnconfigure(0, weight=1)
         tls.rowconfigure(0, weight=1)
 
-        # packing
-        tls.pack(side=TOP, fill=BOTH, expand=YES)
-        bar.pack(side=BOTTOM)
 
     def binding(self):
         self.tree.bind('<Button-3>', self.call_popup)
         #self.tree.bind('<<TreeviewSelect>>', self.select)
         #self.tree.bind('<Button-1>', self.select)
+
 
     def call_popup(self, event):
         ex=event.x_root
@@ -83,6 +84,7 @@ class TreeList(Frame):
         self.tree.focus(focus)
         self.tree.focus_set()
         self.popup.tk_popup(ex,ey)
+
 
     def makePopUp(self):
         popup = Menu(tearoff=0)
@@ -98,6 +100,7 @@ class TreeList(Frame):
 
         self.popup=popup
 
+
     def sortby(self, col, descending): #column click sort
         data = [(self.tree.set(child, col), child) for child in self.tree.get_children('')]
 
@@ -108,6 +111,7 @@ class TreeList(Frame):
         # switch the heading so that it will sort in the opposite direction
         self.tree.heading(col,
             command=lambda col=col: self.sortby(col, int(not descending)))
+
 
     def insert(self, i, data, pos=END, parent=''):
         state=""
@@ -127,9 +131,28 @@ class TreeList(Frame):
         self.top+=1
         return id
 
+
     def push(self):
+        print("push called")
         row = [  str(self.top), 0, False ]
         self.insert(self.top, row)
+
+
+    def pop(self):
+        print("pop called")
+
+
+    def selInv(self):
+        print("selInv called")
+
+
+    def selAll(self):
+        print("selAll called")
+
+
+    def refresh(self):
+        print("refresh called")
+
 
     def article_properties(self):
         win=Toplevel()
@@ -137,10 +160,12 @@ class TreeList(Frame):
         win.bind('<Key-Escape>', lambda event: win.destroy())
         Label(win, text="hello").pack()
 
+
     def clear_tree(self):
         x = self.tree.get_children()
         for item in x: self.tree.delete(item)
         self.top=0
+
 
 def autoscroll(sbar, first, last):
     first, last = float(first), float(last)
@@ -149,6 +174,7 @@ def autoscroll(sbar, first, last):
     else:
         sbar.grid()
     sbar.set(first, last)
+
 
 if __name__ == '__main__':
     root = Tk()
